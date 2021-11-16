@@ -5,11 +5,40 @@ date: 2021-11-15
 output: github_document
 ---
 
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
 ```
 
 ```{r}
-hom_df = read_csv("./data_files/homicide-data.csv")
+hom_df = 
+  read_csv("./data_files/homicide-data.csv", col_types = "cdccfdfffddf") %>% 
+  unite(city_state, city, state, sep = ", ") %>% 
+  mutate(
+    city_state = factor(city_state),
+    year = str_extract(reported_date, "^\\d{4}"),
+    year = as.factor(year),
+    month = str_extract(reported_date, "(?<=^....)\\d{2}"),
+    month = month.name[as.numeric(month)],
+    month = factor(month, levels = month.name[]),
+    day = str_extract(reported_date, "\\d{2}$"),
+    day = as.numeric(day)
+  ) %>% 
+  select(
+    uid, year, month, day, everything(), -reported_date
+  )
+
+hom_sum_df = 
+  hom_df %>% 
+  group_by(city_state) %>% 
+  summarize(tot_hom = n(),
+            unsol_hom = sum(disposition != "Closed by arrest")) %>% 
+  arrange(desc(tot_hom), desc(unsol_hom))
+
+knitr::kable(
+  hom_sum_df,
+  format = "simple",
+  col.names = str_to_title(names(hom_sum_df))
+)
+  
 ```
 
