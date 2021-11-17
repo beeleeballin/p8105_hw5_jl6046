@@ -5,10 +5,13 @@ date: 2021-11-15
 output: github_document
 ---
 
+Load packages
 ```{r, message=FALSE}
 library(tidyverse)
+setwd("~/Desktop/Columbia/Fall_2021/P8105-Data_Science/HW/p8105_hw5_jl6046/")
 ```
 
+Import and tidy dataset
 ```{r}
 hom_df = 
   read_csv("./data_files/homicide-data.csv", col_types = "cdccfdfffddf") %>% 
@@ -26,7 +29,10 @@ hom_df =
   select(
     uid, year, month, day, everything(), -reported_date
   )
+```
 
+Create a homicide table
+```{r}
 hom_sum_df = 
   hom_df %>% 
   group_by(city_state) %>% 
@@ -36,9 +42,16 @@ hom_sum_df =
 
 knitr::kable(
   hom_sum_df,
-  format = "simple",
-  col.names = str_to_title(names(hom_sum_df))
+  format = "simple"
 )
-  
+```
+
+Proportion of homicides in Baltimore
+```{r}
+balt_hom_sum_df =
+  hom_sum_df %>% 
+  filter(city_state == "Baltimore, MD")
+
+prop.test(pull(balt_hom_sum_df, unsol_hom), pull(balt_hom_sum_df, tot_hom))
 ```
 
