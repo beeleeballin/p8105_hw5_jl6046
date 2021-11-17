@@ -11,7 +11,28 @@ library(tidyverse)
 setwd("~/Desktop/Columbia/Fall_2021/P8105-Data_Science/HW/p8105_hw5_jl6046/")
 ```
 
-Import and tidy dataset
+Set knitr options
+```{r}
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+## Problem 1
+
+Import and tidy the homicide dataset
 ```{r}
 hom_df = 
   read_csv("./data_files/homicide-data.csv", col_types = "cdccfdfffddf") %>% 
@@ -31,7 +52,7 @@ hom_df =
   )
 ```
 
-Create a homicide table
+Create a table for total and unresolved homicides
 ```{r}
 hom_sum_df = 
   hom_df %>% 
@@ -55,10 +76,15 @@ balt_hom_sum_df =
 balt_test = 
   prop.test(pull(balt_hom_sum_df, unsol_hom), pull(balt_hom_sum_df, tot_hom)) %>% 
   broom::tidy()
+
+knitr::kable(
+  balt_test,
+  format = "simple"
+)
 ```
 
 Compute the proportion for all cities
-```{r}
+```{r, warning=FALSE}
 city_prop_function = function(city){
   city_hom_sum_df =
     hom_sum_df %>% 
@@ -78,5 +104,71 @@ hom_test_df =
   ) %>% 
   unnest(test_res) %>% 
   select(city_state, estimate, starts_with("conf"))
+```
+
+Graph data using a scatter plot with error bars
+```{r}
+hom_test_df %>% 
+   mutate(
+     city_state = fct_reorder(city_state, estimate)
+   ) %>% 
+  ggplot(aes(x = city_state, y = estimate, color = estimate))+
+  geom_point()+
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  labs(
+    title = "Rate of Unsolved Homicides across US Cities",
+    x = "City",
+    y = "Rate Estimate"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    legend.title = element_blank()
+  )
+```
+
+## Problem 2
+
+Load and tidy the arm score datasets. 
+```{r, message=FALSE}
+setwd("./data_files/data/")
+
+long_df = 
+  tibble(
+    file_name = list.files(".")
+  ) %>% 
+  mutate(
+    content = map(file_name, read_csv)
+  ) %>% 
+  unnest(content) %>% 
+  separate(file_name, into = c("group", "id"), sep = "_") %>% 
+  mutate(
+    group = factor(group, levels = c("con", "exp"), labels = c("Control", "Experimental")),
+    id = str_replace(id, ".csv", ""),
+    id = factor(as.numeric(id))
+  ) %>% 
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    names_prefix = "week_",
+    values_to = "measurement"
+  ) 
+```
+
+Plot a spaghetti graph to show the 2 arm scores over time for each of the 10 subjects. The experimental group showed a general trend of increasing scores, whereas the control group does not. 
+```{r}
+long_df %>% 
+  ggplot(aes(x = week, y = measurement)) +
+  geom_line(aes(group = id, color = id)) +
+  facet_grid(cols = vars(group)) +
+  labs(
+    title = "Subject Score for Each Arm Over 8 Weeks",
+    x = "Week",
+    y = "Score",
+    color = "Patient ID"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+  )
 ```
 
