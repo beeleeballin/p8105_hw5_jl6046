@@ -50,6 +50,8 @@ hom_df =
   select(
     uid, year, month, day, everything(), -reported_date
   )
+
+head(hom_df, 3)
 ```
 
 Create a table for total and unresolved homicides
@@ -61,10 +63,7 @@ hom_sum_df =
             unsol_hom = sum(disposition != "Closed by arrest")) %>% 
   arrange(desc(tot_hom), desc(unsol_hom))
 
-knitr::kable(
-  hom_sum_df,
-  format = "simple"
-)
+head(hom_sum_df, 3)
 ```
 
 Compute the proportion of unresolved homicides in Baltimore
@@ -104,6 +103,8 @@ hom_test_df =
   ) %>% 
   unnest(test_res) %>% 
   select(city_state, estimate, starts_with("conf"))
+
+head(hom_test_df, 3)
 ```
 
 Graph data using a scatter plot with error bars
@@ -129,7 +130,7 @@ hom_test_df %>%
 
 ## Problem 2
 
-Load and tidy the arm score datasets. 
+Load and tidy the arm score datasets
 ```{r, message=FALSE}
 setwd("./data_files/data/")
 
@@ -153,6 +154,8 @@ long_df =
     names_prefix = "week_",
     values_to = "measurement"
   ) 
+
+head(long_df, 3)
 ```
 
 Plot a spaghetti graph to show the 2 arm scores over time for each of the 10 subjects. The experimental group showed a general trend of increasing scores, whereas the control group does not. 
@@ -171,4 +174,45 @@ long_df %>%
     plot.title = element_text(hjust = 0.5),
   )
 ```
+
+## Problem 3
+
+Set seed to ensure reproducibility and load the tweaked dataset
+```{r}
+set.seed(33)
+
+iris_with_missing = iris %>% 
+  map_df(~ replace(.x, sample(1:150, 20), NA)) %>%
+  mutate(Species = as.character(Species))
+
+head(iris_with_missing, 5)
+```
+
+Write a function that either fills in missing values with the mean of non-missing values or the word "virginica"
+```{r}
+value_replace = function(vector){
+  
+  na_list = which(is.na(vector))
+  
+  if(is.numeric(vector)){
+    vector = replace(vector, na_list, mean(vector, trim = 0.10, na.rm=TRUE))
+  }
+  if(is.character(vector)){
+    vector = replace(vector, na_list, "virginica")
+  }
+  
+  return(vector)
+}
+```
+
+Update the entire dataset using the function
+```{r}
+iris_value_replaced = 
+  iris_with_missing %>% 
+  map_df(~ value_replace(.x)) %>% 
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+head(iris_value_replaced, 5)
+```
+
 
